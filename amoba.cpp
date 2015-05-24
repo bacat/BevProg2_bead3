@@ -153,6 +153,64 @@ public:
 
         player2.emplace("22222", 10000);
     }
+
+    int EvaluatePartPlayer1(std::string s)
+    {
+        if(s.size() < 5) return 0;
+
+        int value{0};
+
+        for(size_t i{0}; i < s.size() - 4; i++)
+        {
+            std::string ss{s.substr(i, (i+4) - i)};
+            if(player1.find(ss) != player1.end()) { value += player1.at(ss); }
+        }
+
+        return value;
+    }
+
+     int EvaluatePartPlayer2(std::string s)
+    {
+        if(s.size() < 5) return 0;
+
+        int value{0};
+
+        for(size_t i{0}; i < s.size() - 4; i++)
+        {
+            std::string ss{s.substr(i, (i+4) - i)};
+            if(player2.find(ss) != player2.end()) { value += player2.at(ss); }
+        }
+
+        return value;
+    }
+
+
+    int EvaluateField(uint32_t Field_X, uint32_t Field_Y, GameState &gs, int player)
+    {
+        int value{0};
+
+        std::string hor{gs.getHorizontalStar(Field_X, Field_Y)};
+        std::string ver{gs.getVerticalStar(Field_X, Field_Y)};
+        std::string maind{gs.getMainDiagonalStar(Field_X, Field_Y)};
+        std::string minord{gs.getMinorDiagonalStar(Field_X, Field_Y)};
+
+        if(player == 1)
+        {
+            value += EvaluatePartPlayer1(hor);
+            value += EvaluatePartPlayer1(ver);
+            value += EvaluatePartPlayer1(maind);
+            value += EvaluatePartPlayer1(minord);
+        }
+        else
+        {
+            value += EvaluatePartPlayer2(hor);
+            value += EvaluatePartPlayer2(ver);
+            value += EvaluatePartPlayer2(maind);
+            value += EvaluatePartPlayer2(minord);
+        }
+
+        return value;
+    }
 };
 
 
