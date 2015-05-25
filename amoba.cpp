@@ -3,6 +3,9 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <algorithm>
+#include <numeric>
+#include <limits>
 
 
 std::string itos(int x)
@@ -13,20 +16,65 @@ std::string itos(int x)
 }
 
 
+class GameAnalyse;
+
+
 class GameState
 {
     std::vector<std::vector<int>> game_board;
     std::vector<std::vector<int>> value_board;
-    int winner{0}, value{0}, player{0}, board_x{0}, board_y{0};
+    int winner{0}, value{0}, player{1}, board_x{0}, board_y{0};
 
 public:
     GameState(uint32_t board_x, uint32_t board_y)
     {
         for(size_t i{0}; i < board_x; i++)
         {
-            game_board.push_back(std::vector<int>(board_y, 1));
-            value_board.push_back(std::vector<int>(board_y, 1));
+            game_board.push_back(std::vector<int>(board_y, 0));
+            value_board.push_back(std::vector<int>(board_y, 0));
         }
+    }
+
+    int getBoardX() { return game_board.size(); }
+
+    int getBoardY() { return game_board[0].size(); }
+
+    bool winnerState() { return false; }
+
+    int getPlayer() { return player; }
+
+    void setGameBoard(int Field_X, int Field_Y)
+    {
+        game_board[Field_X][Field_Y] = player;
+    }
+
+    bool isFreeField(int Field_X, int Field_Y)
+    {
+        if(game_board[Field_X][Field_Y] == 0) return true;
+            else return false;
+    }
+
+    void changePlayer()
+    {
+        if(player == 1) player = 2;
+            else player = 1;
+    }
+
+    int getValue()
+    {
+        int value{0};
+
+        for(auto v : value_board)
+        {
+             value += std::accumulate(v.begin(), v.end(), 0);
+        }
+
+        return value;
+    }
+
+    void setValueBoard(int posX, int posY, int value)
+    {
+        value_board[posX][posY] = value;
     }
 
     std::string getVerticalStar(int centre_x, int centre_y)
@@ -103,6 +151,8 @@ public:
 
         return ss.str();
     }
+
+
 };
 
 
@@ -211,7 +261,71 @@ public:
 
         return value;
     }
+
+    void setValue(uint32_t Field_X, uint32_t Field_Y, GameState &gs)
+    {
+        int fieldValue{EvaluateField(Field_X, Field_Y, gs, 2) - EvaluateField(Field_X, Field_Y, gs, 1)};
+        gs.setValueBoard(Field_X, Field_Y, fieldValue);
+    }
+
+    void evaluateFullBoard(GameState &gs)
+    {
+        for(int i{0}; i < gs.getBoardX(); i++)
+        {
+            for(int j{0}; j < gs.getBoardY(); j++)
+            {
+                if(!gs.isFreeField(i, j)) continue;
+                    else setValue(i, j, gs);
+            }
+        }
+    }
 };
+
+int MiniMax(int depth, GameState gs, GameAnalyse &ga, int &bestMoveX, int &bestMoveY)
+{
+    int utility{0};
+
+    if(gs.winnerState() || depth == 0)
+    {
+        ga.evaluateFullBoard(gs);
+        utility = gs.getValue();
+    }
+    else
+    {
+        if(gs.getPlayer() == 2) utility = std::numeric_limits<int>::min();
+            else utility = std::numeric_limits<int>::max();
+
+        for(int i{0}; i < gs.getBoardX(); i++)
+        {
+            for(int j{0}; j < gs.getBoardY(); j++)
+            {
+                if(!gs.isFreeField(i, j)) continue;
+                    else
+                    {
+                        gs.setGameBoard(i, j);
+                        gs.changePlayer();
+                        int utility_temp = MiniMax(depth - 1, gs, ga, bestMoveX, bestMoveY);
+
+                        if(gs.getPlayer() == 2 && utility_temp > utility)
+                        {
+                            bestMoveX = i;
+                            bestMoveY = j;
+                            utility = utility_temp;
+                        }
+
+                        if(gs.getPlayer() == 1 && utility_temp < utility)
+                        {
+                            bestMoveX = i;
+                            bestMoveY = j;
+                            utility = utility_temp;
+                        }
+                    }
+            }
+        }
+    }
+
+    return utility;
+}
 
 
 int main()
